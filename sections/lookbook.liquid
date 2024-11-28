@@ -1,0 +1,173 @@
+{% schema %}
+{
+  "name": "Lookbook",
+  "settings": [
+    {
+      "type": "select",
+      "id": "device",
+      "label": "Select device to show this lookbook",
+      "options": [
+        {"value": "desktop-device", "label": "Desktop devices" },
+        {"value": "mobile-device", "label": "Mobile devices" },
+        {"value": "", "label": "Desktop and Mobile devices" }
+      ],
+      "default": "",
+      "info": "If you selected Desktop and Mobile for the same image, verify if this image is good in any devices"
+    },
+    {
+      "type": "image_picker",
+      "id": "background_image",
+      "label": "Lookbook Background Image"
+    },
+    {
+      "type": "range",
+      "id": "image_width",
+      "label": "Resize Image",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "default": 100
+    }
+  ],
+
+  "blocks": [
+    {
+      "type": "hotspot",
+      "name": "Hotspot",
+      "settings": [
+        {
+          "type": "product",
+          "id": "selected_product",
+          "label": "Select Product"
+        },
+        {
+          "type": "select",
+          "id": "icon_type",
+          "label": "Select icon type",
+          "options": [
+            {"value": "svg", "label": "Send SVG"},
+            {"value": "css", "label": "CSS icon"}
+          ],
+          "default": "css"
+        },
+        {
+          "type": "range",
+          "id": "hotspot_x",
+          "label": "Hotspot X Position",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "default": 50
+        },
+        {
+          "type": "range",
+          "id": "hotspot_y",
+          "label": "Hotspot Y Position",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "default": 50
+        },
+        {
+          "type": "image_picker",
+          "id": "custom_svg",
+          "label": "Send custom SVG"
+        },
+        {
+          "type": "range",
+          "id": "custom_svg_size",
+          "label": "Choose SVG Size",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "default": 40
+        },
+        {
+          "type": "color_background",
+          "id": "icon_color",
+          "label": "[Only for CSS] Pick the icon color",
+          "default": "linear-gradient(#ffffff, #000000)"
+        },
+        {
+          "type": "range",
+          "id": "width_icon",
+          "label": "[Only for CSS] Icon size",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "default": 40
+        },
+        {
+          "type": "checkbox",
+          "id": "include_symbol",
+          "label": "[Only for CSS] Include symbol inside the hotspot?"
+        },
+        {
+          "type": "text",
+          "id": "symbol",
+          "label": "[Only for CSS] Write symbol for hotspot",
+          "default": "+"
+        },
+        {
+          "type": "range",
+          "id": "icon_symbol_size",
+          "label": "[Only for CSS] Choose the inside icon size",
+          "min": 0,
+          "max": 50,
+          "step": 1,
+          "default": 20
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Lookbook",
+      "category": "Custom"
+    }
+  ]
+}
+{% endschema %}
+
+<div class="hotspot-container {{ section.settings.device }}">
+    <img src="{{ section.settings.background_image | image_url }}" alt="Lookbook background" class="lookbook-image" style="display: block;" width="{{ section.settings.image_width }}%" height="100%" />
+
+    {% for block in section.blocks %}
+            {% if block.settings.icon_type == "svg" and block.settings.custom_svg != blank %}
+              <div class="hotspot-wrapper" style="position: absolute; top: {{ block.settings.hotspot_y }}%; left: {{ block.settings.hotspot_x }}%; transform: translate(-50%, -50%);">
+                <a href="#" class="hotspot"
+                     data-product-image="{{ block.settings.selected_product.featured_image | image_url }}"
+                     data-product-title="{{ block.settings.selected_product.title }}"
+                     data-product-url="{{ block.settings.selected_product.url }}"
+                     data-product-price="{{ block.settings.selected_product.price | money }}">
+                    <img src="{{ block.settings.custom_svg | image_url }}" alt="Custom Icon" class="hotspot-icon" width="{{ block.settings.custom_svg_size }}px" height="100%" />
+                  </a>
+                </div>
+            {% else %}
+              <div class="hotspot-wrapper" style="position: absolute; top: {{ block.settings.hotspot_y }}%; left: {{ block.settings.hotspot_x }}%; transform: translate(-50%, -50%);">
+                <a href="#" class="hotspot hotspot-css-icon" style="--icon-color: {{ block.settings.icon_color | default: '#000000' }}; width: {{ block.settings.width_icon }}px; height: {{ block.settings.width_icon }}px "
+                     data-product-image="{{ block.settings.selected_product.featured_image | image_url }}"
+                     data-product-title="{{ block.settings.selected_product.title }}"
+                     data-product-url="{{ block.settings.selected_product.url }}"
+                     data-product-price="{{ block.settings.selected_product.price | money }}">
+                {% if block.settings.include_symbol %}
+                  <span class="hotspot-plus" style="font-size: {{ block.settings.icon_symbol_size }}px">{{ block.settings.symbol }}</span>
+                {% endif %}
+                </a>
+              </div>
+            {% endif %}
+    {% endfor %}
+  <link rel="stylesheet" href="{{ 'lookbook.css' | asset_url }}" />
+</div>
+
+<div class="product-detail product-card" style="display: none; opacity: 0;">
+    <button class="product-card__close" aria-label="Close product popup">&times;</button>
+    <div class="product-card__media">
+        <img src="" alt="" class="product-card__image" width="100%" height="100%" />
+    </div>
+    <div class="product-card__info">
+        <p class="product-card__title"></p>
+        <p class="product-card__price"></p>
+        <a href="#" class="product-card__button" target="_blank">Check</a>
+    </div>
+</div>
