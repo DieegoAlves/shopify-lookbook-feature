@@ -1,4 +1,4 @@
-### Lookbook Interactive Documentation
+### Lookbook with Hotspot Selection Feature
 
 This documentation provides instructions to implement and test the **Lookbook Interactive Feature** for Shopify storefronts. The feature allows merchants to create an interactive image-based lookbook with customizable hotspots, making it easier for customers to explore products visually.
 
