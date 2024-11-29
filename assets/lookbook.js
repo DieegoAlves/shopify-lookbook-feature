@@ -1,121 +1,171 @@
-document.addEventListener('DOMContentLoaded', function () {
-	const hotspots = document.querySelectorAll('.hotspot');
-	const lookbookImage = document.querySelector('.lookbook-image');
-	const productDetail = document.querySelector('.product-detail');
-	const closeButton = productDetail.querySelector('.product-card__close');
-	
-	hotspots.forEach(hotspot => {
-		hotspot.addEventListener('click', function (event) {
-			event.preventDefault();
-			
-			const productImage = productDetail.querySelector('.product-card__image');
-			const productTitle = productDetail.querySelector('.product-card__title');
-			const productPrice = productDetail.querySelector('.product-card__price');
-			const productLink = productDetail.querySelector('.product-card__button');
-			
-			const selectedImage = this.getAttribute('data-product-image');
-			const selectedTitle = this.getAttribute('data-product-title');
-			const selectedPrice = this.getAttribute('data-product-price');
-			const selectedUrl = this.getAttribute('data-product-url');
-			
-			// Verifica se o produto já está ativo
-			if (productDetail.dataset.currentProduct === selectedTitle) {
-				closeProductDetail();
-				return;
-			}
-			
-			// Atualiza detalhes do produto
-			productImage.src = selectedImage;
-			productTitle.textContent = selectedTitle;
-			productPrice.textContent = selectedPrice;
-			productLink.href = selectedUrl;
-			
-			// Calcula a posição do hotspot e ajusta a posição do card
-			const hotspotRect = this.getBoundingClientRect();
-			const lookbookImageRect = lookbookImage.getBoundingClientRect();
-			let cardWidth = getWidthBeforeVisible(productDetail);
-			const cardHeight = getHeightBeforeVisible(productDetail);
-			
-			// Posição do card em relação ao hotspot
-			let topPosition;
-			let leftPosition = hotspotRect.left - lookbookImageRect.left;
-			
-			// Ajuste da posição lateral
-			if (leftPosition > cardWidth) {
-				leftPosition = hotspotRect.left - (window.innerWidth/8); // O número é uma margem de segurança que pode ser ajustada
-			}
-			if (leftPosition < cardWidth) {
-				leftPosition = hotspotRect.right + (window.innerWidth/8); // O número é uma margem de segurança que pode ser ajustada
-			}
-      
-			// Ajuste da posição na altura
-			if (hotspotRect.top < cardHeight*0.6) {
-				topPosition = Math.abs(hotspotRect.top + window.scrollY) + cardHeight*0.55; // Adiciona 55% da altura do card para dentro da tela
-			}
-			if (hotspotRect.bottom > cardHeight) {
-				topPosition = Math.abs(hotspotRect.bottom + window.scrollY) - cardHeight*0.5; // Adiciona 60% da altura do card para dentro da tela
-			}
-			if (hotspotRect.top > cardHeight*0.6 && hotspotRect.bottom < cardHeight) {
-				topPosition = hotspotRect.y + window.scrollY;
-			}
+class LookbookInteractive {
+  constructor(config = {}) {
+    this.defaults = {
+      cardMargin: 0.125, // Margem para cálculo da posição do card em relação ao hotspot (12.5%)
+      mobileBreakpoint: 1024, // Largura máxima para dispositivos móveis
+      fadeDuration: 300, // Duração da transição em milissegundos
+      zIndexActive: "10", // Z-index para exibir o card no topo
+      zIndexInactive: "0", // Z-index para a imagem do lookbook
+      cardTopOffsetFactor: 0.6, // Fator de altura para ajuste ao topo do hotspot
+      cardBottomOffsetFactor: 0.5, // Fator de altura para ajuste ao fundo do hotspot
+      cardAdditionalOffsetFactor: 0.55, // Fator adicional para posicionamento vertical
+    };
 
-			productDetail.style.top = `${topPosition}px`;
-			productDetail.style.left = `${leftPosition}px`;
-			productDetail.style.position = 'absolute';
-			
-			if (window.innerWidth < 1023) {
-				productDetail.style.position = 'fixed';
-				productDetail.style.top = `50%`;
-				productDetail.style.left = `50%`;
-				productDetail.style.transform = 'translate(-50%, -50%)';// Ajuste para o estilo absoluto no mobile
-			}
-			
-			// Mostra os detalhes do produto com animação
-			productDetail.dataset.currentProduct = selectedTitle;
-			productDetail.style.display = 'flex';
-			setTimeout(() => (productDetail.style.opacity = '1'), 10);
-			lookbookImage.style.zIndex = '0'; // Garante que a imagem fique atrás do produto
-		});
-	});
-	
-	function getHeightBeforeVisible(element) {
-		const originalDisplay = element.style.display;
-		element.style.display = 'block';
-		
-		const height = element.clientHeight || element.scrollHeight;
-		element.style.display = originalDisplay;
-		
-		return height;
-	}
-	function getWidthBeforeVisible(element) {
-		const originalDisplay = element.style.display;
-		element.style.display = 'block';
-		
-		const width = element.clientWidth || element.scrollWidth;
-		element.style.display = originalDisplay;
-		
-		return width;
-	}
-	
-	// Botão de fechar
-	closeButton.addEventListener('click', function (event) {
-		// Esconder o popup com transição
-		event.preventDefault();
-		closeProductDetail();
-	});
-	
-	document.addEventListener('click', function (event) {
-		event.preventDefault();
-		if (!event.target.closest('.hotspot') && !event.target.closest('.product-detail')) {
-			closeProductDetail();
-		}
-	});
-	
-	function closeProductDetail() {
-		productDetail.style.opacity = '0';
-		setTimeout(function() {
-			productDetail.style.display = 'none';
-			productDetail.dataset.currentProduct = ''; // Limpa o produto atual
-		}, 300);
-	}
+    this.settings = { ...this.defaults, ...config };
+
+    this.hotspots = document.querySelectorAll(".hotspot");
+    this.lookbookImage = document.querySelector(".lookbook-image");
+    this.productDetail = document.querySelector(".product-detail");
+    this.closeButton = this.productDetail.querySelector(".product-card__close");
+    this.productImage = this.productDetail.querySelector(
+      ".product-card__image"
+    );
+    this.productTitle = this.productDetail.querySelector(
+      ".product-card__title"
+    );
+    this.productPrice = this.productDetail.querySelector(
+      ".product-card__price"
+    );
+    this.productLink = this.productDetail.querySelector(
+      ".product-card__button"
+    );
+
+    this.init();
+  }
+
+  init() {
+    this.bindHotspotEvents();
+    this.bindCloseButton();
+    this.bindOutsideClick();
+  }
+
+  bindHotspotEvents() {
+    this.hotspots.forEach((hotspot) => {
+      hotspot.addEventListener(
+        "click",
+        this.handleHotspotClick.bind(this, hotspot)
+      );
+    });
+  }
+
+  handleHotspotClick(hotspot, event) {
+    event.preventDefault();
+
+    const selectedImage = hotspot.getAttribute("data-product-image");
+    const selectedTitle = hotspot.getAttribute("data-product-title");
+    const selectedPrice = hotspot.getAttribute("data-product-price");
+    const selectedUrl = hotspot.getAttribute("data-product-url");
+
+    if (this.productDetail.dataset.currentProduct === selectedTitle) {
+      this.closeProductDetail();
+      return;
+    }
+
+    this.updateProductDetails(
+      selectedImage,
+      selectedTitle,
+      selectedPrice,
+      selectedUrl
+    );
+    this.positionProductDetail(hotspot);
+    this.showProductDetail(selectedTitle);
+  }
+
+  updateProductDetails(image, title, price, url) {
+    this.productImage.src = image;
+    this.productTitle.textContent = title;
+    this.productPrice.textContent = price;
+    this.productLink.href = url;
+  }
+
+  positionProductDetail(hotspot) {
+    const hotspotRect = hotspot.getBoundingClientRect();
+    const lookbookImageRect = this.lookbookImage.getBoundingClientRect();
+    const cardWidth = this.getHiddenElementWidth(this.productDetail);
+    const cardHeight = this.getHiddenElementHeight(this.productDetail);
+
+    const margin = window.innerWidth * this.settings.cardMargin;
+    const scrollY = window.scrollY;
+
+    // Cálculo da posição horizontal (left)
+    let leftPosition = hotspotRect.left - lookbookImageRect.left;
+    if (leftPosition > cardWidth) {
+      leftPosition -= margin;
+    } else {
+      leftPosition = hotspotRect.right + margin;
+    }
+
+    // Cálculo da posição vertical (top)
+    let topPosition = hotspotRect.top + scrollY; // Posição base
+    if (hotspotRect.top < cardHeight * this.settings.cardTopOffsetFactor) {
+      topPosition += cardHeight * this.settings.cardAdditionalOffsetFactor;
+    } else if (hotspotRect.bottom > cardHeight) {
+      topPosition -= cardHeight * this.settings.cardBottomOffsetFactor;
+    }
+
+    // Ajuste para dispositivos móveis
+    if (window.innerWidth < this.settings.mobileBreakpoint) {
+      this.productDetail.style.position = "fixed";
+      this.productDetail.style.top = "50%";
+      this.productDetail.style.left = "50%";
+      this.productDetail.style.transform = "translate(-50%, -50%)";
+    } else {
+      this.productDetail.style.position = "absolute";
+      this.productDetail.style.top = `${topPosition}px`;
+      this.productDetail.style.left = `${leftPosition}px`;
+    }
+  }
+
+  showProductDetail(currentTitle) {
+    this.productDetail.dataset.currentProduct = currentTitle;
+    this.productDetail.style.display = "flex";
+    setTimeout(() => (this.productDetail.style.opacity = "1"), 10);
+    this.lookbookImage.style.zIndex = this.settings.zIndexInactive;
+  }
+
+  closeProductDetail() {
+    this.productDetail.style.opacity = "0";
+    setTimeout(() => {
+      this.productDetail.style.display = "none";
+      this.productDetail.dataset.currentProduct = "";
+    }, this.settings.fadeDuration);
+  }
+
+  bindCloseButton() {
+    this.closeButton.addEventListener(
+      "click",
+      this.closeProductDetail.bind(this)
+    );
+  }
+
+  bindOutsideClick() {
+    document.addEventListener("click", (event) => {
+      if (
+        !event.target.closest(".hotspot") &&
+        !event.target.closest(".product-detail")
+      ) {
+        this.closeProductDetail();
+      }
+    });
+  }
+
+  getHiddenElementHeight(element) {
+    const originalDisplay = element.style.display;
+    element.style.display = "block";
+    const height = element.clientHeight || element.scrollHeight;
+    element.style.display = originalDisplay;
+    return height;
+  }
+
+  getHiddenElementWidth(element) {
+    const originalDisplay = element.style.display;
+    element.style.display = "block";
+    const width = element.clientWidth || element.scrollWidth;
+    element.style.display = originalDisplay;
+    return width;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  new LookbookInteractive();
 });
