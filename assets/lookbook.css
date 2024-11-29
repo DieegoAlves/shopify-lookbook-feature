@@ -1,8 +1,4 @@
 /* Mobile-First */
-:root {
-    --icon-color: linear-gradient(#ffffff, #000000);
-}
-
 @media screen and (max-width:768px) {
     .desktop-device {display: none !important;}
 }
