@@ -2,6 +2,8 @@
 
 This documentation provides instructions to implement and test the **Lookbook Interactive Feature** for Shopify storefronts. The feature allows merchants to create an interactive image-based lookbook with customizable hotspots, making it easier for customers to explore products visually.
 
+[**Setup and usage tutorials for administrators**](https://bit.ly/4g4R2fg)
+
 ---
 
 ### Overview
